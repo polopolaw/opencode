@@ -73,7 +73,7 @@ describe("EventFeed", () => {
     Effect.gen(function* () {
       const source = makeSource()
       const feed = yield* EventFeed.make(source.observe, { encode: (event) => event.type })
-      const filtered = yield* feed.subscribe([Credential.Event.Switched.type])
+      const filtered = yield* feed.subscribe({ types: [Credential.Event.Switched.type] })
       const all = yield* feed.subscribe()
       const left = yield* filtered.pipe(Stream.take(1), Stream.runCollect, Effect.forkScoped)
       const right = yield* all.pipe(Stream.take(2), Stream.runCollect, Effect.forkScoped)
@@ -199,3 +199,35 @@ describe("EventFeed", () => {
     }),
   )
 })
+
+it.live("a failing extension never fails the stream", () =>
+  Effect.gen(function* () {
+    const source = makeSource()
+    const sends: Array<Parameters<EventFeed.Extension["open"]>[1]> = []
+    const feed = yield* EventFeed.make(source.observe, {
+      extensions: [
+        { open: () => Effect.die(new Error("broken")) },
+        {
+          open: (_, next) =>
+            Effect.sync(() => {
+              sends.push(next)
+              return []
+            }),
+        },
+      ],
+    })
+    const live = yield* feed.subscribe()
+    // A cyclic payload cannot be encoded; it is dropped instead of failing the stream.
+    const cyclic: Record<string, unknown> = {}
+    cyclic.self = cyclic
+    const send = sends[0]
+    if (send) yield* send({ ...event("bad"), data: cyclic })
+    yield* source.publish(event("ok"))
+    const [frame] = yield* live.pipe(
+      Stream.take(1),
+      Stream.runCollect,
+      Effect.map((frames) => Array.from(frames)),
+    )
+    expect(frame && JSON.parse(frame.slice("data: ".length)).id).toBe("evt_ok")
+  }),
+)

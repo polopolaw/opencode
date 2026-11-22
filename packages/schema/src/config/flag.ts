@@ -24,6 +24,8 @@ export const registry = {
     "Load a personal config dir for each project from ~/.config/opencode/project/<project-id>/, read like an extra .opencode dir that ranks above the repo's own, and let home memory keep the skills it builds for the user there.",
   sqlite_fts:
     "Build an SQLite full-text index of session titles and message text in the background, and enable the opencode.session.search and opencode.session.read tools. The index covers every session in the database and starts while any loaded location enables it; SQLite keeps it current from then on, also after this is turned off.",
+  spaces:
+    "Let clients keep their own state, such as pinned sessions, in server-wide spaces they write through the experimental space API and sync on the event stream.",
 } as const satisfies Record<string, string>
 export type Key = keyof typeof registry
 

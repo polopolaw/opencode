@@ -17,7 +17,7 @@ export const EventHandler = HttpApiBuilder.group(Api, "server.event", (handlers)
         } as const
         const output = Stream.unwrap(
           feed
-            .subscribe(ctx.query.types)
+            .subscribe(ctx.query)
             .pipe(Effect.map((live) => Stream.make(EventFeed.frame(connected)).pipe(Stream.concat(live)))),
         )
         const heartbeat = Stream.tick("15 seconds").pipe(Stream.map(() => ": heartbeat\n\n"))

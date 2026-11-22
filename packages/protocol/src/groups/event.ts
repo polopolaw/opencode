@@ -1,3 +1,4 @@
+import { Space } from "@opencode/schema/space"
 import { Event } from "@opencode/schema/event"
 import { EventManifest } from "@opencode/schema/event-manifest"
 import { Location } from "@opencode/schema/location"
@@ -23,6 +24,8 @@ const rpcEvent = Schema.Struct({
 const schema = <const Definitions extends ReadonlyArray<Definition>>(definitions: Definitions) =>
   Schema.Union([
     ...definitions,
+    // Sent only by the event feed to subscribers of their space, never on the bus, so plugins do not see them.
+    ...Space.Event.Definitions,
     rpcEvent,
     ...(definitions.some((definition) => definition.type === "server.connected")
       ? []
@@ -50,16 +53,22 @@ const query = <const Definitions extends ReadonlyArray<Definition>>(definitions:
       description:
         "Only send events of these types, plus the initial server.connected event. When omitted, all events are sent.",
     }),
+    "experimental.space": Schema.optional(Schema.ArrayEnsure(Space.Subscription)).annotate({
+      description:
+        "Experimental: spaces to sync, each as `space` or `space:epoch.revision` from that space's last applied event. After server.connected, sends per space experimental.space.delta batches with the keys changed since that revision when this database issued it, otherwise an experimental.space.snapshot batch followed by deltas; then every later experimental.space.updated and experimental.space.deleted in those spaces, with nothing missed or repeated. experimental.space.* events reach only subscribers that request their space, whatever `types` says.",
+    }),
   }).annotate({ identifier: "EventSubscribeQuery" })
 
 const make = <const Definitions extends ReadonlyArray<Definition>>(definitions: Definitions) => {
   const EventSchema = schema(definitions)
+  const Query = query(definitions)
   return {
     schema: EventSchema,
+    query: Query,
     group: HttpApiGroup.make("server.event")
       .add(
         HttpApiEndpoint.get("event.subscribe", "/api/event", {
-          query: query(definitions),
+          query: Query,
           success: HttpApiSchema.StreamSse({ data: EventSchema }),
         }).annotateMerge(
           OpenApi.annotations({
@@ -82,5 +91,6 @@ export const EventGroup = event.group
 export const OpenCodeEvent = event.schema
 export type OpenCodeEvent = typeof OpenCodeEvent.Type
 export type OpenCodeEventEncoded = typeof OpenCodeEvent.Encoded
+export type EventSubscribeQuery = typeof event.query.Type
 export const isOpenCodeEvent = (event: { readonly type: string }): event is OpenCodeEvent =>
   event.type === "server.connected" || EventManifest.isServer(event) || event.type.startsWith("rpc.")

@@ -284,6 +284,11 @@ import type {
   ExperimentalMachineAddOutput,
   ExperimentalMachineRemoveInput,
   ExperimentalMachineRemoveOutput,
+  ExperimentalSpaceSetInput,
+  ExperimentalSpaceSetOutput,
+  ExperimentalSpaceDeleteInput,
+  ExperimentalSpaceDeleteOutput,
+  ExperimentalSpaceResetOutput,
   ShellListInput,
   ShellListOutput,
   ShellCreateInput,
@@ -1810,6 +1815,42 @@ export function make(options: ClientOptions) {
             requestOptions,
           ),
       },
+      space: {
+        set: (input: ExperimentalSpaceSetInput, requestOptions?: RequestOptions) =>
+          request<ExperimentalSpaceSetOutput>(
+            {
+              method: "PUT",
+              path: `/api/experimental/space/${encodeURIComponent(input.space)}/${encodeURIComponent(input.key)}`,
+              body: { value: input["value"] },
+              successStatus: 204,
+              declaredStatuses: [400, 401, 403],
+              empty: true,
+            },
+            requestOptions,
+          ),
+        delete: (input: ExperimentalSpaceDeleteInput, requestOptions?: RequestOptions) =>
+          request<ExperimentalSpaceDeleteOutput>(
+            {
+              method: "DELETE",
+              path: `/api/experimental/space/${encodeURIComponent(input.space)}/${encodeURIComponent(input.key)}`,
+              successStatus: 204,
+              declaredStatuses: [400, 401, 403],
+              empty: true,
+            },
+            requestOptions,
+          ),
+        reset: (requestOptions?: RequestOptions) =>
+          request<ExperimentalSpaceResetOutput>(
+            {
+              method: "POST",
+              path: `/api/experimental/space/reset`,
+              successStatus: 204,
+              declaredStatuses: [400, 401, 403],
+              empty: true,
+            },
+            requestOptions,
+          ),
+      },
       migration: {
         v1: {
           status: (requestOptions?: RequestOptions) =>
@@ -2392,7 +2433,7 @@ export function make(options: ClientOptions) {
           {
             method: "GET",
             path: `/api/event`,
-            query: { types: input?.["types"] },
+            query: { types: input?.["types"], "experimental.space": input?.["experimental.space"] },
             successStatus: 200,
             declaredStatuses: [400, 401],
             empty: false,

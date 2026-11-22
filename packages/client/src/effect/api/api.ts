@@ -2198,6 +2198,7 @@ export type EventSubscribeInput = {
         | `${"rpc."}${string}`
       >
     | undefined
+  readonly "experimental.space"?: ReadonlyArray<string> | undefined
 }
 export type EventSubscribeOutput = OpenCodeEvent
 export type EventSubscribeOperation<E = never> = (input?: EventSubscribeInput) => Stream.Stream<EventSubscribeOutput, E>
@@ -2598,6 +2599,25 @@ export type ExperimentalMachineRemoveOperation<E = never> = (
   input: ExperimentalMachineRemoveInput,
 ) => Effect.Effect<ExperimentalMachineRemoveOutput, E>
 
+export type ExperimentalSpaceSetInput = {
+  readonly space: string
+  readonly key: string
+  readonly value: string | number | boolean | ReadonlyArray<Schema.Json> | { readonly [x: string]: Schema.Json }
+}
+export type ExperimentalSpaceSetOutput = void
+export type ExperimentalSpaceSetOperation<E = never> = (
+  input: ExperimentalSpaceSetInput,
+) => Effect.Effect<ExperimentalSpaceSetOutput, E>
+
+export type ExperimentalSpaceDeleteInput = { readonly space: string; readonly key: string }
+export type ExperimentalSpaceDeleteOutput = void
+export type ExperimentalSpaceDeleteOperation<E = never> = (
+  input: ExperimentalSpaceDeleteInput,
+) => Effect.Effect<ExperimentalSpaceDeleteOutput, E>
+
+export type ExperimentalSpaceResetOutput = void
+export type ExperimentalSpaceResetOperation<E = never> = () => Effect.Effect<ExperimentalSpaceResetOutput, E>
+
 export interface ExperimentalApi<E = never> {
   readonly persistentPty: {
     readonly read: ExperimentalPersistentPtyReadOperation<E>
@@ -2632,6 +2652,11 @@ export interface ExperimentalApi<E = never> {
     readonly list: ExperimentalMachineListOperation<E>
     readonly add: ExperimentalMachineAddOperation<E>
     readonly remove: ExperimentalMachineRemoveOperation<E>
+  }
+  readonly space: {
+    readonly set: ExperimentalSpaceSetOperation<E>
+    readonly delete: ExperimentalSpaceDeleteOperation<E>
+    readonly reset: ExperimentalSpaceResetOperation<E>
   }
 }
 

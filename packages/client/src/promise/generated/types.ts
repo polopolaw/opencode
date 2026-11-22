@@ -329,6 +329,16 @@ export type SessionStatus =
     }
   | { type: "busy" }
 
+export type SpaceName = string
+
+export type SpaceEpoch = string
+
+export type SpaceRevision = number
+
+export type SpaceKey = string
+
+export type SpaceValue = string | number | boolean | Array<JsonValue> | { [x: string]: JsonValue }
+
 export type PersistentPtyHandoff = { directory: string; instanceID: string; ticket: string; expiresAt: number }
 
 export type AutomationID = string
@@ -1020,6 +1030,8 @@ export type FormMultiselectField1 = {
 }
 
 export type FormAnswer1 = { [x: string]: FormValue1 }
+
+export type SpaceEntry = { key: SpaceKey; value: SpaceValue }
 
 export type AutomationTriggerEvery = { type: "every"; every: AutomationDuration; tz?: string }
 
@@ -2202,6 +2214,24 @@ export type ExperimentalMcpEvent = {
   }
 }
 
+export type ExperimentalSpaceUpdated = {
+  id: EventID
+  created: number
+  metadata?: { [x: string]: any }
+  type: "experimental.space.updated"
+  location?: LocationRef
+  data: { space: SpaceName; key: SpaceKey; value: SpaceValue; revision: SpaceRevision }
+}
+
+export type ExperimentalSpaceDeleted = {
+  id: EventID
+  created: number
+  metadata?: { [x: string]: any }
+  type: "experimental.space.deleted"
+  location?: LocationRef
+  data: { space: SpaceName; key: SpaceKey; revision: SpaceRevision }
+}
+
 export type SessionToolSuccess = {
   id: EventID
   created: number
@@ -2332,6 +2362,30 @@ export type FormReplied = {
   type: "form.replied"
   location?: LocationRef
   data: { id: FormID; sessionID: string; answer: FormAnswer1 }
+}
+
+export type ExperimentalSpaceSnapshot = {
+  id: EventID
+  created: number
+  metadata?: { [x: string]: any }
+  type: "experimental.space.snapshot"
+  location?: LocationRef
+  data: { space: SpaceName; epoch: SpaceEpoch; revision: SpaceRevision; entries: Array<SpaceEntry> }
+}
+
+export type ExperimentalSpaceDelta = {
+  id: EventID
+  created: number
+  metadata?: { [x: string]: any }
+  type: "experimental.space.delta"
+  location?: LocationRef
+  data: {
+    space: SpaceName
+    epoch: SpaceEpoch
+    revision: SpaceRevision
+    entries: Array<SpaceEntry>
+    deleted: Array<SpaceKey>
+  }
 }
 
 export type AutomationTrigger =
@@ -2672,6 +2726,7 @@ export type ConfigEntry =
           home_memory?: boolean
           project_overlay?: boolean
           sqlite_fts?: boolean
+          spaces?: boolean
           part_rows?: boolean
           image_generate?: boolean | { model?: string | { providerID: string; model: string; variant?: string } }
           subagent_depth?: number
@@ -3078,6 +3133,10 @@ export type V2Event =
   | McpStatusChanged
   | McpResourcesChanged
   | ExperimentalMcpEvent
+  | ExperimentalSpaceSnapshot
+  | ExperimentalSpaceDelta
+  | ExperimentalSpaceUpdated
+  | ExperimentalSpaceDeleted
   | V2EventRpc
   | V2EventServerConnected
 
@@ -4625,6 +4684,7 @@ export type EventSubscribeInput = {
         | `${"rpc."}${string}`
       >
     | undefined
+  readonly "experimental.space"?: ReadonlyArray<string> | undefined
 }
 
 export type EventSubscribeOutput = V2Event
@@ -4871,6 +4931,20 @@ export type ExperimentalMachineAddOutput = { data: MachineInvite }["data"]
 export type ExperimentalMachineRemoveInput = { readonly name: string }
 
 export type ExperimentalMachineRemoveOutput = void
+
+export type ExperimentalSpaceSetInput = {
+  readonly space: string
+  readonly key: string
+  readonly value: string | number | boolean | ReadonlyArray<JsonValue> | { readonly [x: string]: JsonValue }
+}
+
+export type ExperimentalSpaceSetOutput = void
+
+export type ExperimentalSpaceDeleteInput = { readonly space: string; readonly key: string }
+
+export type ExperimentalSpaceDeleteOutput = void
+
+export type ExperimentalSpaceResetOutput = void
 
 export type ShellListInput = { readonly location?: { readonly directory?: string | undefined } | undefined }
 

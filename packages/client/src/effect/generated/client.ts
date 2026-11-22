@@ -280,6 +280,11 @@ import type {
   ExperimentalMachineAddOutput,
   ExperimentalMachineRemoveInput,
   ExperimentalMachineRemoveOutput,
+  ExperimentalSpaceSetInput,
+  ExperimentalSpaceSetOutput,
+  ExperimentalSpaceDeleteInput,
+  ExperimentalSpaceDeleteOutput,
+  ExperimentalSpaceResetOutput,
   ShellListInput,
   ShellListOutput,
   ShellCreateInput,
@@ -1460,7 +1465,9 @@ const adaptGroupRpc = (raw: RawClient["server.rpc"]) => ({ call: EndpointRpcCall
 const EndpointEventSubscribe = (raw: RawClient["server.event"]) => (input?: EventSubscribeInput) =>
   preserveStream<EventSubscribeOutput>()(
     Stream.unwrap(
-      raw["event.subscribe"]({ query: { types: input?.["types"] } }).pipe(
+      raw["event.subscribe"]({
+        query: { types: input?.["types"], "experimental.space": input?.["experimental.space"] },
+      }).pipe(
         Effect.mapError(mapClientError),
         Effect.map((stream) => stream.pipe(Stream.mapError(mapClientError))),
       ),
@@ -1786,6 +1793,24 @@ const EndpointExperimentalMachineRemove =
       raw["machine.remove"]({ params: { name: input["name"] } }).pipe(Effect.mapError(mapClientError)),
     )
 
+const EndpointExperimentalSpaceSet = (raw: RawClient["server.experimental"]) => (input: ExperimentalSpaceSetInput) =>
+  preserveEffect<ExperimentalSpaceSetOutput>()(
+    raw["space.set"]({ params: { space: input["space"], key: input["key"] }, payload: { value: input["value"] } }).pipe(
+      Effect.mapError(mapClientError),
+    ),
+  )
+
+const EndpointExperimentalSpaceDelete =
+  (raw: RawClient["server.experimental"]) => (input: ExperimentalSpaceDeleteInput) =>
+    preserveEffect<ExperimentalSpaceDeleteOutput>()(
+      raw["space.delete"]({ params: { space: input["space"], key: input["key"] } }).pipe(
+        Effect.mapError(mapClientError),
+      ),
+    )
+
+const EndpointExperimentalSpaceReset = (raw: RawClient["server.experimental"]) => () =>
+  preserveEffect<ExperimentalSpaceResetOutput>()(raw["space.reset"]({}).pipe(Effect.mapError(mapClientError)))
+
 const adaptGroupExperimental = (raw: RawClient["server.experimental"]) => ({
   persistentPty: {
     read: EndpointExperimentalPersistentPtyRead(raw),
@@ -1820,6 +1845,11 @@ const adaptGroupExperimental = (raw: RawClient["server.experimental"]) => ({
     list: EndpointExperimentalMachineList(raw),
     add: EndpointExperimentalMachineAdd(raw),
     remove: EndpointExperimentalMachineRemove(raw),
+  },
+  space: {
+    set: EndpointExperimentalSpaceSet(raw),
+    delete: EndpointExperimentalSpaceDelete(raw),
+    reset: EndpointExperimentalSpaceReset(raw),
   },
 })
 
